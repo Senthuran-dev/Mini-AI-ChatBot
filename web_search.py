@@ -73,16 +73,21 @@ def _search_tavily(query: str, api_key: str, max_results: int, news: bool) -> li
         search_depth="basic",
         max_results=max_results,
         timeout=15,
+        include_raw_content=True,
     )
-    return [
-        SearchResult(
+    
+    results = []
+    for i, item in enumerate(response.get("results", [])):
+        content = item.get("raw_content") if i == 0 and item.get("raw_content") else item.get("content")
+        limit = 2500 if i == 0 else SNIPPET_CHARS
+        
+        results.append(SearchResult(
             title=_clip(item.get("title"), 160) or item.get("url", ""),
             url=item.get("url", ""),
-            snippet=_clip(item.get("content")),
+            snippet=_clip(content, limit),
             published=_clip(item.get("published_date"), 40),
-        )
-        for item in response.get("results", [])
-    ]
+        ))
+    return results
 
 
 def _search_duckduckgo(query: str, max_results: int, news: bool) -> list[SearchResult]:

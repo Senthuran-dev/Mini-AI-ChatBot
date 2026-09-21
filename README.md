@@ -185,16 +185,6 @@ python -m unittest discover -s tests -v
 
 ---
 
-**Phase 3 — Ideas for later**
-- [ ] Stream answers token by token
-- [ ] Cache identical searches for a few minutes (saves quota and time)
-- [ ] Model picker in the sidebar
-- [ ] Fetch full page text for the top result (Tavily Extract) for deeper answers
-- [ ] Evaluate Groq's built-in search tools as an alternative backend
-- [ ] Deploy to Streamlit Community Cloud (put keys in *Secrets*)
-
----
-
 ## 🔒 Security Notes
 
 - **Never commit `.env`** or `.streamlit/secrets.toml` — both are listed in `.gitignore`

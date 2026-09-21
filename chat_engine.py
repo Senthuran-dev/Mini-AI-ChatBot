@@ -20,6 +20,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Iterator
 
 from llama_index.core.llms import ChatMessage, MessageRole
 
@@ -98,8 +99,8 @@ class Route:
 
 
 @dataclass
-class Reply:
-    text: str
+class ReplyStream:
+    stream: Iterator[str]
     sources: list[SearchResult] = field(default_factory=list)
     search_query: str | None = None
     provider: str | None = None
@@ -241,21 +242,24 @@ def generate_reply(
     tavily_api_key: str | None = None,
     now: datetime | None = None,
     searcher=web_search,
-) -> Reply:
+) -> ReplyStream:
     """
-    Produce the assistant's reply to the last message in `history`.
+    Produce the assistant's reply to the last message in `history` as a stream.
 
     `history` is a list of {"role": "user" | "assistant", "content": str}
     (extra keys are ignored). Never raises: problems come back as a friendly
-    message in `Reply.text`.
+    message in `ReplyStream.stream`.
     """
+    def _text_gen(text: str) -> Iterator[str]:
+        yield text
+
     if answer_llm is None:
-        return Reply("⚠️ **API key not found.** Please add `GROQ_API_KEY` to your `.env` file and restart the app.")
+        return ReplyStream(stream=_text_gen("⚠️ **API key not found.** Please add `GROQ_API_KEY` to your `.env` file and restart the app."))
 
     now = now or datetime.now().astimezone()
     history = trim_history(history)
     if not history:
-        return Reply("⚠️ Nothing to answer yet. Type a message first.")
+        return ReplyStream(stream=_text_gen("⚠️ Nothing to answer yet. Type a message first."))
 
     results: list[SearchResult] = []
     query = provider = None
@@ -278,13 +282,21 @@ def generate_reply(
                     unavailable_reason = "unavailable right now"
 
         system_prompt = build_system_prompt(now, results, unavailable_reason)
-        response = answer_llm.chat(_to_chat_messages(system_prompt, history))
-        text = str(response.message.content or "").strip()
-        if not text:
-            text = "⚠️ The model returned an empty answer. Please try again."
+        
+        # Use stream_chat instead of chat
+        response_stream = answer_llm.stream_chat(_to_chat_messages(system_prompt, history))
+        
+        def _stream_generator() -> Iterator[str]:
+            empty = True
+            for chunk in response_stream:
+                if chunk.delta:
+                    empty = False
+                    yield chunk.delta
+            if empty:
+                yield "⚠️ The model returned an empty answer. Please try again."
 
-        return Reply(
-            text=text,
+        return ReplyStream(
+            stream=_stream_generator(),
             sources=results,
             search_query=query,
             provider=provider,
@@ -292,4 +304,4 @@ def generate_reply(
         )
     except Exception as exc:
         logger.exception("Chat request failed")
-        return Reply(text=friendly_error(exc))
+        return ReplyStream(stream=_text_gen(friendly_error(exc)))
