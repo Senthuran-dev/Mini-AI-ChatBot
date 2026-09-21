@@ -101,7 +101,7 @@ st.markdown("""
         color: #e2e8f0;
     }
 
-    /* Prompt buttons */
+    /* Prompt buttons (Main Area) */
     div.stButton > button {
         border-radius: 12px;
         text-align: left !important;
@@ -114,6 +114,19 @@ st.markdown("""
         text-align: left !important;
         margin-bottom: 0 !important;
     }
+
+    /* Reset Sidebar Buttons */
+    [data-testid="stSidebar"] div.stButton > button {
+        min-height: 0 !important;
+        padding: 0.5rem 0.75rem !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    [data-testid="stSidebar"] div.stButton > button p {
+        text-align: center !important;
+    }
+
 
     /* Chat input */
     div[data-testid="stChatInput"] {
