@@ -28,23 +28,84 @@ DEFAULT_GROQ_MODEL = get_setting("GROQ_MODEL", "openai/gpt-oss-20b")
 
 # ── Page configuration ────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Mini AI Chatbot",
+    page_title="Mini-AI Chat",
     page_icon="🤖",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# ── Custom CSS ────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+    /* Dark mode background and text softening */
+    [data-testid="stAppViewContainer"] {
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #161b22;
+        border-right: 1px solid #30363d;
+    }
+    
+    /* Round corners for chat messages and containers */
+    [data-testid="stChatMessage"] {
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    
+    /* Input box styling */
+    [data-testid="stChatInput"] {
+        border-radius: 20px;
+    }
+
+    /* Custom Header Styling */
+    .header-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #58a6ff;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    /* Custom Header Styling */
+    .header-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #58a6ff;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .header-subtitle {
+        font-size: 1.2rem;
+        color: #8b949e;
+        margin-top: 5px;
+        margin-bottom: 2rem;
+    }
+    
+    /* Danger button in sidebar */
+    [data-testid="stSidebar"] .stButton button[kind="primary"] {
+        background-color: #d32f2f;
+        color: white;
+        border: none;
+    }
+    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {
+        background-color: #f44336;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 # ── LLM singletons — created once per (key, model), not on every message ─────
 # The key is a function argument so that fixing a missing/wrong key takes
 # effect immediately instead of returning a stale cached result.
 @st.cache_resource
-def get_llms(api_key: str, model: str):
-    answer_llm = Groq(model=model, api_key=api_key, temperature=0.3)  # factual, less rambling
+def get_llms(api_key: str, model: str, temperature: float = 0.3):
+    answer_llm = Groq(model=model, api_key=api_key, temperature=temperature)  # factual, less rambling
     router_llm = Groq(model=model, api_key=api_key, temperature=0.0)  # must be deterministic
     return answer_llm, router_llm
 
 
-answer_llm, router_llm = get_llms(GROQ_API_KEY, DEFAULT_GROQ_MODEL) if GROQ_API_KEY else (None, None)
+answer_llm, router_llm = get_llms(GROQ_API_KEY, DEFAULT_GROQ_MODEL, 0.3) if GROQ_API_KEY else (None, None)
 
 
 # ── Caching web searches ──────────────────────────────────────────────────────
@@ -61,47 +122,26 @@ def render_message(msg: dict) -> None:
         st.warning("🌐 Live web search was unavailable, so this answer may be out of date.")
     sources = msg.get("sources")
     if sources:
-        st.caption(f"🔎 Searched the web for: *{msg['search_query']}* · via {msg['provider']}")
-        with st.expander(f"Sources ({len(sources)})"):
-            for i, s in enumerate(sources, 1):
-                title = s["title"].replace("[", "(").replace("]", ")")
-                url = s["url"].replace("(", "%28").replace(")", "%29")
-                date = f" — {s['published']}" if s.get("published") else ""
-                st.markdown(f"**[{i}]** [{title}]({url}){date}")
+        st.caption(f"🔎 Searched the web for: *{msg['search_query']}*")
+        html = '<div style="margin-top: 5px;">'
+        for i, s in enumerate(sources, 1):
+            title = s["title"].replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+            url = s["url"].replace('"', '&quot;')
+            html += f'<a href="{url}" target="_blank" style="display:inline-block; margin:4px 4px 0 0; padding:4px 10px; background-color:rgba(255,255,255,0.05); border-radius:12px; color:#58a6ff; text-decoration:none; font-size:0.85em; border:1px solid rgba(255,255,255,0.1);">[{i}] {title}</a> '
+        html += '</div>'
+        st.markdown(html, unsafe_allow_html=True)
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
-st.title("AI Web 🤖 :green[Research Assistant] ✨")
+st.markdown('<div class="header-title">Mini-AI Chat ✨</div>', unsafe_allow_html=True)
+st.markdown('<div class="header-subtitle">Your intelligent web-research assistant, powered by real-time search and Groq LLMs.</div>', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown("### 🤖 AI Web Research Assistant")
-    
-    # Model picker
-    available_models = [
-        "openai/gpt-oss-20b",
-        "llama-3.1-8b-instant",
-        "llama-3.1-70b-versatile",
-        "llama3-8b-8192",
-        "llama3-70b-8192",
-        "gemma2-9b-it"
-    ]
-    # Ensure default model from .env is in the list
-    if DEFAULT_GROQ_MODEL not in available_models:
-        available_models.insert(0, DEFAULT_GROQ_MODEL)
-        
-    selected_model = st.selectbox(
-        "Model",
-        options=available_models,
-        index=available_models.index(DEFAULT_GROQ_MODEL),
-        help="Select the Groq model to power the assistant."
-    )
-    
-    # Re-initialize LLMs with the selected model
-    answer_llm, router_llm = get_llms(GROQ_API_KEY, selected_model) if GROQ_API_KEY else (None, None)
-
+    st.markdown("### ⚙️ Settings & Controls")
     st.markdown("---")
+    
     search_enabled = st.toggle(
-        "🌐 Live web search",
+        "🌐 Enable Web Search",
         value=True,
         help="Look up current information online before answering, so answers aren't limited "
              "to the model's (older) training data.",
@@ -111,10 +151,43 @@ with st.sidebar:
             st.caption("Search provider: Tavily")
         else:
             st.caption("Search provider: DuckDuckGo. Add a `TAVILY_API_KEY` for more reliable results.")
+            
     st.markdown("---")
-    if st.button("Clear Chat", width="stretch"):
+    
+    with st.expander("🛠️ Advanced Settings"):
+        # Model picker
+        available_models = [
+            "openai/gpt-oss-20b",
+            "llama-3.1-8b-instant",
+            "llama-3.1-70b-versatile",
+            "llama3-8b-8192",
+            "llama3-70b-8192",
+            "gemma2-9b-it"
+        ]
+        if DEFAULT_GROQ_MODEL not in available_models:
+            available_models.insert(0, DEFAULT_GROQ_MODEL)
+            
+        selected_model = st.selectbox(
+            "Model Selection",
+            options=available_models,
+            index=available_models.index(DEFAULT_GROQ_MODEL),
+            help="Select the Groq model to power the assistant."
+        )
+        
+        temperature = st.slider(
+            "Temperature", 
+            min_value=0.0, max_value=1.0, value=0.3, step=0.1, 
+            help="Higher values make output more random, lower values make it more deterministic."
+        )
+
+    # Re-initialize LLMs with the selected model
+    answer_llm, router_llm = get_llms(GROQ_API_KEY, selected_model, temperature) if GROQ_API_KEY else (None, None)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🗑️ Clear Chat History", type="primary", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
+        
     st.markdown("---")
     st.markdown("[View Source on GitHub](https://github.com/Senthuran-dev/Mini-AI-ChatBot)")
 
@@ -133,7 +206,8 @@ if "messages" not in st.session_state:
 
 # Display all past messages
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    avatar = "🧑‍💻" if message["role"] == "user" else "🤖"
+    with st.chat_message(message["role"], avatar=avatar):
         render_message(message)
 
 # React to new user input
@@ -143,20 +217,35 @@ if prompt := st.chat_input("Ask me anything!"):
         st.stop()
 
     # Show user message immediately
-    st.chat_message("user").markdown(prompt)
+    st.chat_message("user", avatar="🧑‍💻").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     # Search (if needed) + answer, with a spinner while we wait
-    with st.chat_message("assistant"):
-        with st.spinner("Searching the web..." if search_enabled else "Thinking..."):
-            reply_stream = chat_engine.generate_reply(
-                st.session_state.messages,
-                answer_llm,
-                router_llm,
-                search_enabled=search_enabled,
-                tavily_api_key=TAVILY_API_KEY,
-                searcher=cached_web_search,
-            )
+    with st.chat_message("assistant", avatar="🤖"):
+        if search_enabled:
+            with st.status("🔍 Searching the web...", expanded=True) as status:
+                reply_stream = chat_engine.generate_reply(
+                    st.session_state.messages,
+                    answer_llm,
+                    router_llm,
+                    search_enabled=search_enabled,
+                    tavily_api_key=TAVILY_API_KEY,
+                    searcher=cached_web_search,
+                )
+                if reply_stream.search_query:
+                    status.update(label=f"Searched for: {reply_stream.search_query}", state="complete", expanded=False)
+                else:
+                    status.update(label="Thinking...", state="complete", expanded=False)
+        else:
+            with st.spinner("Thinking..."):
+                reply_stream = chat_engine.generate_reply(
+                    st.session_state.messages,
+                    answer_llm,
+                    router_llm,
+                    search_enabled=search_enabled,
+                    tavily_api_key=TAVILY_API_KEY,
+                    searcher=cached_web_search,
+                )
             
         # Stream the text output
         text = st.write_stream(reply_stream.stream)
