@@ -1,15 +1,30 @@
+from __future__ import annotations
+
 import os
+from dataclasses import asdict
+
 import streamlit as st
 from dotenv import load_dotenv
 from llama_index.llms.groq import Groq
-from llama_index.core.llms import ChatMessage, MessageRole
 
-# ── Load environment variables from .env ─────────────────────────────────────
+import chat_engine
+
+# ── Load settings from .env / Streamlit secrets ──────────────────────────────
 load_dotenv()
-try:
-    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-except Exception:
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+
+def get_setting(name: str, default: str | None = None) -> str | None:
+    """Streamlit secrets first (cloud deploys), then environment / .env."""
+    try:
+        value = st.secrets[name]
+    except Exception:
+        value = None
+    return value or os.getenv(name) or default
+
+
+GROQ_API_KEY = get_setting("GROQ_API_KEY")
+TAVILY_API_KEY = get_setting("TAVILY_API_KEY")  # optional: better web search
+GROQ_MODEL = get_setting("GROQ_MODEL", "openai/gpt-oss-20b")
 
 # ── Page configuration ────────────────────────────────────────────────────────
 st.set_page_config(
@@ -18,60 +33,56 @@ st.set_page_config(
     layout="centered"
 )
 
-# ── LLM singleton — created once, not on every message ───────────────────────
+
+# ── LLM singletons — created once per (key, model), not on every message ─────
+# The key is a function argument so that fixing a missing/wrong key takes
+# effect immediately instead of returning a stale cached result.
 @st.cache_resource
-def get_llm():
-    if not GROQ_API_KEY:
-        return None
-    return Groq(
-        model="openai/gpt-oss-20b",
-        api_key=GROQ_API_KEY,
-        temperature=0.7
-    )
+def get_llms(api_key: str, model: str):
+    answer_llm = Groq(model=model, api_key=api_key, temperature=0.3)  # factual, less rambling
+    router_llm = Groq(model=model, api_key=api_key, temperature=0.0)  # must be deterministic
+    return answer_llm, router_llm
 
-llm = get_llm()
 
-# ── System prompt — gives the bot a helpful persona ──────────────────────────
-SYSTEM_PROMPT = (
-    "You are a helpful, friendly, and concise AI assistant. "
-    "Answer clearly and accurately. If you don't know something, say so honestly."
-)
+answer_llm, router_llm = get_llms(GROQ_API_KEY, GROQ_MODEL) if GROQ_API_KEY else (None, None)
 
-# ── Chat function with full conversation history and error handling ────────────
-def chat_qa(messages: list[dict]) -> str:
-    """
-    Send the full conversation history to the LLM and return its reply as a string.
-    Fix #3: LLM is a singleton (not re-created here).
-    Fix #4: Wrapped in try/except for graceful error handling.
-    Fix #5: Response explicitly cast to string.
-    Fix #8: Full message history passed so the LLM has memory.
-    Fix #15: System prompt included in every request.
-    """
-    if llm is None:
-        return "⚠️ **API key not found.** Please add `GROQ_API_KEY` to your `.env` file and restart the app."
 
-    try:
-        chat_messages = [
-            ChatMessage(role=MessageRole.SYSTEM, content=SYSTEM_PROMPT)
-        ]
-        for msg in messages:
-            role = MessageRole.USER if msg["role"] == "user" else MessageRole.ASSISTANT
-            chat_messages.append(ChatMessage(role=role, content=msg["content"]))
+def render_message(msg: dict) -> None:
+    """Show one chat message, plus its web sources when it used a search."""
+    st.markdown(msg["content"])
+    if msg.get("search_failed"):
+        st.warning("🌐 Live web search was unavailable, so this answer may be out of date.")
+    sources = msg.get("sources")
+    if sources:
+        st.caption(f"🔎 Searched the web for: *{msg['search_query']}* · via {msg['provider']}")
+        with st.expander(f"Sources ({len(sources)})"):
+            for i, s in enumerate(sources, 1):
+                title = s["title"].replace("[", "(").replace("]", ")")
+                url = s["url"].replace("(", "%28").replace(")", "%29")
+                date = f" — {s['published']}" if s.get("published") else ""
+                st.markdown(f"**[{i}]** [{title}]({url}){date}")
 
-        response = llm.chat(chat_messages)
-        return str(response.message.content)  # Fix #5: always a plain string
-
-    except Exception as e:
-        return f"⚠️ **An error occurred:** {str(e)}"
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 st.title("Mini AI 🤖 :green[Chatbot] ✨")
 
 with st.sidebar:
     st.markdown("### 🤖 Mini AI Chatbot")
-    st.markdown("Powered by **Groq** — `openai/gpt-oss-20b`")
+    st.markdown(f"Powered by **Groq** — `{GROQ_MODEL}`")
     st.markdown("---")
-    if st.button("Clear Chat", use_container_width=True):
+    search_enabled = st.toggle(
+        "🌐 Live web search",
+        value=True,
+        help="Look up current information online before answering, so answers aren't limited "
+             "to the model's (older) training data.",
+    )
+    if search_enabled:
+        if TAVILY_API_KEY:
+            st.caption("Search provider: Tavily")
+        else:
+            st.caption("Search provider: DuckDuckGo. Add a `TAVILY_API_KEY` for more reliable results.")
+    st.markdown("---")
+    if st.button("Clear Chat", width="stretch"):
         st.session_state.messages = []
         st.rerun()
     st.markdown("---")
@@ -86,31 +97,44 @@ if not GROQ_API_KEY:
     )
     st.stop()
 
-# Fix #14: Initialize chat history in session state
+# Initialize chat history in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # Display all past messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        render_message(message)
 
 # React to new user input
 if prompt := st.chat_input("Ask me anything!"):
     if len(prompt) > 4000:
         st.warning("Please keep your message under 4,000 characters.")
         st.stop()
-        
+
     # Show user message immediately
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Fix #6: Show spinner while waiting for LLM response
-    with st.spinner("Thinking..."):
-        recent_messages = st.session_state.messages[-20:]
-        reply = chat_qa(recent_messages)
-
-    # Show and store assistant reply
+    # Search (if needed) + answer, with a spinner while we wait
     with st.chat_message("assistant"):
-        st.markdown(reply)
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+        with st.spinner("Searching the web & thinking..." if search_enabled else "Thinking..."):
+            reply = chat_engine.generate_reply(
+                st.session_state.messages,
+                answer_llm,
+                router_llm,
+                search_enabled=search_enabled,
+                tavily_api_key=TAVILY_API_KEY,
+            )
+        assistant_message = {
+            "role": "assistant",
+            "content": reply.text,
+            "sources": [asdict(s) for s in reply.sources],
+            "search_query": reply.search_query,
+            "provider": reply.provider,
+            "search_failed": reply.search_failed,
+        }
+        render_message(assistant_message)
+
+    # Store the reply (with its sources) so it re-renders correctly on the next run
+    st.session_state.messages.append(assistant_message)

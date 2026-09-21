@@ -1,5 +1,6 @@
-# Environment variables — NEVER commit this
+# Environment variables / secrets — NEVER commit these
 .env
+.streamlit/secrets.toml
 
 # Virtual environments
 venv/
