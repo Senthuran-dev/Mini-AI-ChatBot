@@ -1,13 +1,13 @@
-# 🤖 My AI Chatbot
+# 🤖 Mini AI Chatbot
 
-A conversational AI chatbot built with **Streamlit** and **Groq's LLaMA 3** model via **LlamaIndex**. Supports full multi-turn conversation memory, error handling, and a clean chat UI.
+A conversational AI chatbot built with **Streamlit** and **Groq's OpenAI GPT-OSS 20B** model via **LlamaIndex**. Supports full multi-turn conversation memory, error handling, and a clean chat UI.
 
 ---
 
 ## ✨ Features
 
 - 💬 **Multi-turn conversation** — the bot remembers the full chat history
-- ⚡ **Powered by Groq** — ultra-fast LLaMA 3 inference
+- ⚡ **Powered by Groq** — ultra-fast OpenAI GPT-OSS 20B inference
 - 🔄 **Loading spinner** — visual feedback while the bot is thinking
 - 🛡️ **Error handling** — graceful messages instead of crashes
 - 🔑 **Secure API key** — loaded from `.env`, never hardcoded
@@ -85,7 +85,7 @@ The app will open automatically in your browser at `http://localhost:8501`.
 | [Streamlit](https://streamlit.io/) | Chat UI and web framework |
 | [LlamaIndex](https://www.llamaindex.ai/) | LLM abstraction layer |
 | [Groq](https://groq.com/) | Fast LLM inference API |
-| [LLaMA 3 (8B)](https://ai.meta.com/llama/) | Underlying language model |
+| [OpenAI GPT-OSS 20B](https://console.groq.com/docs/model/openai/gpt-oss-20b) | Underlying language model |
 | [python-dotenv](https://pypi.org/project/python-dotenv/) | Secure API key loading |
 
 ---
@@ -96,7 +96,7 @@ You can tweak the following in [`app.py`](./app.py):
 
 | Setting | Location | Default | Description |
 |---------|----------|---------|-------------|
-| `model` | `get_llm()` | `llama3-8b-8192` | Groq model to use |
+| `model` | `get_llm()` | `openai/gpt-oss-20b` | Groq model to use |
 | `temperature` | `get_llm()` | `0.7` | Creativity (0 = precise, 1 = random) |
 | `SYSTEM_PROMPT` | top of file | Helpful assistant | Bot's personality and instructions |
 

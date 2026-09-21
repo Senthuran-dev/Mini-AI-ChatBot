@@ -6,11 +6,14 @@ from llama_index.core.llms import ChatMessage, MessageRole
 
 # ── Load environment variables from .env ─────────────────────────────────────
 load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except Exception:
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ── Page configuration ────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="My AI Chatbot",
+    page_title="Mini AI Chatbot",
     page_icon="🤖",
     layout="centered"
 )
@@ -21,9 +24,9 @@ def get_llm():
     if not GROQ_API_KEY:
         return None
     return Groq(
-        model="llama3-8b-8192",   # Fix #2: correct model name (was "Llma3-8b-8192")
-        api_key=GROQ_API_KEY,     # Fix #1: loaded from .env, not hardcoded
-        temperature=0.7            # Fix #9: lowered from 1 to 0.7
+        model="openai/gpt-oss-20b",
+        api_key=GROQ_API_KEY,
+        temperature=0.7
     )
 
 llm = get_llm()
@@ -62,7 +65,17 @@ def chat_qa(messages: list[dict]) -> str:
         return f"⚠️ **An error occurred:** {str(e)}"
 
 # ── UI ────────────────────────────────────────────────────────────────────────
-st.title("My AI 🤖 :green[Chatbot] ✨")
+st.title("Mini AI 🤖 :green[Chatbot] ✨")
+
+with st.sidebar:
+    st.markdown("### 🤖 Mini AI Chatbot")
+    st.markdown("Powered by **Groq** — `openai/gpt-oss-20b`")
+    st.markdown("---")
+    if st.button("Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    st.markdown("---")
+    st.markdown("[View Source on GitHub](https://github.com/Senthuran-dev/Mini-AI-ChatBot)")
 
 # Warn if API key is missing
 if not GROQ_API_KEY:
@@ -84,13 +97,18 @@ for message in st.session_state.messages:
 
 # React to new user input
 if prompt := st.chat_input("Ask me anything!"):
+    if len(prompt) > 4000:
+        st.warning("Please keep your message under 4,000 characters.")
+        st.stop()
+        
     # Show user message immediately
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     # Fix #6: Show spinner while waiting for LLM response
     with st.spinner("Thinking..."):
-        reply = chat_qa(st.session_state.messages)
+        recent_messages = st.session_state.messages[-20:]
+        reply = chat_qa(recent_messages)
 
     # Show and store assistant reply
     with st.chat_message("assistant"):
