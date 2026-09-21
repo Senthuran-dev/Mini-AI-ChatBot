@@ -104,7 +104,15 @@ st.markdown("""
     /* Prompt buttons */
     div.stButton > button {
         border-radius: 12px;
-        text-align: left;
+        text-align: left !important;
+        display: block !important;
+        padding: 15px !important;
+        height: auto !important;
+        min-height: 95px;
+    }
+    div.stButton > button p {
+        text-align: left !important;
+        margin-bottom: 0 !important;
     }
 
     /* Chat input */
@@ -283,19 +291,19 @@ if not st.session_state.messages:
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("🔎 Research\n\nExplain the latest AI developments", use_container_width=True):
+        if st.button("**🔎 Research**\n\nExplain the latest AI developments", use_container_width=True):
             st.session_state.initial_prompt = "Explain the latest AI developments"
             st.rerun()
     with col2:
-        if st.button("💻 Coding\n\nExplain REST APIs with an example", use_container_width=True):
+        if st.button("**💻 Coding**\n\nExplain REST APIs with an example", use_container_width=True):
             st.session_state.initial_prompt = "Explain REST APIs with an example"
             st.rerun()
     with col3:
-        if st.button("📰 News\n\nWhat happened in AI this week?", use_container_width=True):
+        if st.button("**📰 News**\n\nWhat happened in AI this week?", use_container_width=True):
             st.session_state.initial_prompt = "What happened in AI this week?"
             st.rerun()
     with col4:
-        if st.button("📚 Learn\n\nTeach me how RAG works", use_container_width=True):
+        if st.button("**📚 Learn**\n\nTeach me how RAG works", use_container_width=True):
             st.session_state.initial_prompt = "Teach me how RAG works"
             st.rerun()
 else:

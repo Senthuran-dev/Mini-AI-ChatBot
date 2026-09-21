@@ -6,8 +6,9 @@ A conversational AI chatbot built with **Streamlit** and **Groq's OpenAI GPT-OSS
 
 ## ✨ Features
 
+- 🎨 **Modern App UI** — features a sleek welcome screen, prompt cards, custom branding, and an unscrollable sidebar
 - 🌐 **Live web search** — looks things up online before answering (Tavily, with automatic DuckDuckGo fallback)
-- 🔗 **Cited sources** — every searched answer lists the pages it used
+- 🔗 **Clean Source Citations** — web sources are neatly hidden in collapsible expanders below each answer
 - 📅 **Date-aware** — the model is told today's date on every request
 - 💬 **Multi-turn conversation** — the bot remembers the chat history, and follow-ups like *"and his deputy?"* are understood
 - ⚡ **Powered by Groq** — ultra-fast OpenAI GPT-OSS 20B inference
@@ -51,6 +52,7 @@ Search results exist only for that one request — they are never stored in the 
 
 ```
 SeekAI/
+├── assets/                 ← Contains UI assets (e.g., logo.png)
 ├── .venv/                  ← Python virtual environment
 ├── .env                    ← Your API keys (DO NOT commit this)
 ├── .env.example            ← Template for setting up .env
@@ -124,7 +126,11 @@ streamlit run app.py
 
 The app will open automatically in your browser at `http://localhost:8501`.
 
-**Try it:** ask *"Who is the current CM of Tamil Nadu?"* — you should see a searched answer with a **Sources** dropdown underneath. Use the **🌐 Live web search** switch in the sidebar to compare with search turned off.
+**Try it:** ask *"Who is the current CM of Tamil Nadu?"* — you should see a searched answer with a **Sources** dropdown underneath. Use the **🌐 Web Search** switch in the sidebar to compare with search turned off.
+
+### 6. Customize your brand
+
+Replace `assets/logo.png` with your own logo image to automatically update the favicon, sidebar branding, and welcome screen!
 
 ---
 
