@@ -1,5 +1,5 @@
 """
-Chat logic for the Mini AI Chatbot (no Streamlit imports, so it is easy to test).
+Chat logic for SeekAI (no Streamlit imports, so it is easy to test).
 
 For every user message the flow is:
 

@@ -1,4 +1,4 @@
-# 🤖 Mini AI Chatbot
+# 🤖 SeekAI
 
 A conversational AI chatbot built with **Streamlit** and **Groq's OpenAI GPT-OSS 20B** model via **LlamaIndex** — now with **live web search**, so it answers current-events questions with up-to-date facts and shows its sources.
 
@@ -50,7 +50,7 @@ Search results exist only for that one request — they are never stored in the 
 ## 📁 Project Structure
 
 ```
-Mini-AI-ChatBot/
+SeekAI/
 ├── .venv/                  ← Python virtual environment
 ├── .env                    ← Your API keys (DO NOT commit this)
 ├── .env.example            ← Template for setting up .env
@@ -71,7 +71,7 @@ Mini-AI-ChatBot/
 
 ```bash
 git clone <your-repo-url>
-cd Mini-AI-ChatBot
+cd SeekAI
 ```
 
 ### 2. Create a virtual environment
