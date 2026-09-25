@@ -28,7 +28,7 @@ from web_search import SearchError, SearchResult, web_search
 
 logger = logging.getLogger(__name__)
 
-MAX_HISTORY = 6  # how many recent messages are sent to the model
+MAX_HISTORY = 12  # how many recent messages are sent to the model
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = (

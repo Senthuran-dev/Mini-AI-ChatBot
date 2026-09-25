@@ -165,7 +165,7 @@ Replace `assets/logo.png` with your own logo image to automatically update the f
 | `temperature` | `get_llms()` in `app.py` | `0.3` | Answer creativity (0 = precise, 1 = random). Lowered from 0.7 so answers stick to the search results |
 | `SYSTEM_PROMPT` | `chat_engine.py` | Helpful assistant | Bot's personality and instructions |
 | `ALWAYS_SEARCH_RE` | `chat_engine.py` | see file | Words that always force a web search |
-| `MAX_HISTORY` | `chat_engine.py` | `6` | How many recent messages are sent to the model |
+| `MAX_HISTORY` | `chat_engine.py` | `12` | How many recent messages are sent to the model |
 | `max_results` | `web_search()` | `5` | Search results given to the model |
 
 ---
