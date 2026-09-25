@@ -44,6 +44,15 @@ class FakeLLM:
             raise reply
         return SimpleNamespace(message=SimpleNamespace(content=reply))
 
+    def stream_chat(self, messages):
+        self.calls.append(messages)
+        reply = self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
+        if isinstance(reply, Exception):
+            raise reply
+        def generator():
+            yield SimpleNamespace(delta=reply)
+        return generator()
+
     def system_prompt(self, call=-1):
         return str(self.calls[call][0].content)
 
@@ -64,6 +73,7 @@ def ask(text, *, answer="ok", router='{"search": true, "query": "q"}', searcher=
     answer_llm, router_llm = FakeLLM(answer), FakeLLM(router)
     searcher = searcher or FakeSearcher()
     reply = ce.generate_reply(history, answer_llm, router_llm, now=NOW, searcher=searcher, **kw)
+    reply.text = "".join(list(reply.stream))
     return reply, answer_llm, router_llm, searcher
 
 

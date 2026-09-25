@@ -197,7 +197,8 @@ def cached_web_search(query: str, tavily_api_key: str | None = None, news: bool 
 
 def render_message(msg: dict) -> None:
     """Show one chat message, plus its web sources when it used a search."""
-    st.markdown(msg["content"])
+    if msg.get("content"):
+        st.markdown(msg["content"])
     if msg.get("search_failed"):
         st.warning("🌐 Live web search was unavailable, so this answer may be out of date.")
     sources = msg.get("sources")
@@ -207,6 +208,10 @@ def render_message(msg: dict) -> None:
                 title = s["title"].replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
                 url = s["url"]
                 st.markdown(f"{i}. [{title}]({url})")
+                
+    tokens = msg.get("tokens")
+    if tokens:
+        st.markdown(f"<div style='text-align: right; margin-top: 5px; font-size: 0.8rem; color: #A0AEC0;'>🪙 <b>Tokens used:</b> {tokens['total']:,} <span style='opacity: 0.7;'>(Context: {tokens['prompt']:,} | Reply: {tokens['completion']:,})</span></div>", unsafe_allow_html=True)
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -252,6 +257,9 @@ with st.sidebar:
         selected_model = DEFAULT_GROQ_MODEL
         temperature = 0.3
         st.caption(f"🤖 Model: {selected_model}")
+        
+        current_tokens = get_token_count(st.session_state.messages)
+        st.caption(f"🪙 Tokens used: {current_tokens:,} / 8,192")
 
     # Re-initialize LLMs with the selected model
     answer_llm, router_llm = get_llms(GROQ_API_KEY, selected_model, temperature) if GROQ_API_KEY else (None, None)
@@ -373,6 +381,9 @@ if prompt:
         # Stream the text output
         text = st.write_stream(reply_stream.stream)
         
+        prompt_tokens = get_token_count(st.session_state.messages)
+        completion_tokens = get_token_count([{"content": text}])
+        
         assistant_message = {
             "role": "assistant",
             "content": text,
@@ -380,6 +391,7 @@ if prompt:
             "search_query": reply_stream.search_query,
             "provider": reply_stream.provider,
             "search_failed": reply_stream.search_failed,
+            "tokens": {"prompt": prompt_tokens, "completion": completion_tokens, "total": prompt_tokens + completion_tokens},
         }
         
         # Render the sources underneath the streamed text
