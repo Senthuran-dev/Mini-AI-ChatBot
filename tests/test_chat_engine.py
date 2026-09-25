@@ -202,7 +202,8 @@ class DegradationTests(unittest.TestCase):
 
     def test_missing_llm_gives_api_key_message(self):
         reply = ce.generate_reply([{"role": "user", "content": "hi"}], None)
-        self.assertIn("API key not found", reply.text)
+        text = "".join(list(reply.stream))
+        self.assertIn("API key not found", text)
 
     def test_empty_model_answer_gets_a_placeholder(self):
         reply, *_ = ask("hi", answer="   ", router='{"search": false}')

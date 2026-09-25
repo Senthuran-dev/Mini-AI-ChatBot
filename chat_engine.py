@@ -290,7 +290,8 @@ def generate_reply(
             empty = True
             for chunk in response_stream:
                 if chunk.delta:
-                    empty = False
+                    if chunk.delta.strip():
+                        empty = False
                     yield chunk.delta
             if empty:
                 yield "⚠️ The model returned an empty answer. Please try again."
